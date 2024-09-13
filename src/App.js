@@ -88,7 +88,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:3001/generate-fitness-plan",
+        "https://fitness-generator.onrender.com/generate-fitness-plan",
         {
           method: "POST",
           headers: {
@@ -120,15 +120,18 @@ function App() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:3001/generate-recipe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ingredients: ingredients.split(",").map((item) => item.trim()),
-        }),
-      });
+      const response = await fetch(
+        "https://fitness-generator.onrender.com/generate-recipe",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ingredients: ingredients.split(",").map((item) => item.trim()),
+          }),
+        }
+      );
 
       const data = await response.json();
       setRecipeData(data.recipe);
@@ -242,24 +245,20 @@ function App() {
           </div>
         </div>
       )}
-
       {loading && <div>Loading...</div>}
       {error && <div>{error}</div>}
-
       {workoutData && (
         <div className="output">
           <h2>Workout Plan</h2>
           <ReactMarkdown>{workoutData}</ReactMarkdown>
         </div>
       )}
-
       {recipeData && (
         <div className="output">
           <h2>Recipe</h2>
           <ReactMarkdown>{recipeData}</ReactMarkdown>
         </div>
       )}
-
       {!workoutData && !recipeData && (
         <div className="output">
           <ReactMarkdown>{instructions}</ReactMarkdown>
