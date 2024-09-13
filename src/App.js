@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import { auth } from "./auth/firebase"; // Firebase authentication
 import "./App.css";
 import "./index.css";
+
 const instructions = `
 ### Instructions
 
@@ -17,6 +24,7 @@ const instructions = `
 #### For Generating a Recipe:
 1. **Ingredients**: List the ingredients you have available, separated by commas (e.g., tomato, onion, chicken).
 `;
+
 function App() {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -30,6 +38,49 @@ function App() {
   const [recipeData, setRecipeData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // Handle login
+  const handleLogin = async () => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      setUser(userCredential.user);
+      setError(null);
+    } catch (error) {
+      setError("Failed to log in: " + error.message);
+    }
+  };
+
+  // Handle signup
+  const handleSignup = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      setUser(userCredential.user);
+      setError(null);
+    } catch (error) {
+      setError("Failed to sign up: " + error.message);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      setError("Failed to log out: " + error.message);
+    }
+  };
 
   const generateFitnessPlan = async () => {
     setLoading(true);
@@ -37,7 +88,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "https://fitness-generator.onrender.com/generate-fitness-plan",
+        "http://localhost:3001/generate-fitness-plan",
         {
           method: "POST",
           headers: {
@@ -69,18 +120,15 @@ function App() {
     setError(null);
 
     try {
-      const response = await fetch(
-        "https://fitness-generator.onrender.com/generate-recipe",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ingredients: ingredients.split(",").map((item) => item.trim()),
-          }),
-        }
-      );
+      const response = await fetch("http://localhost:3001/generate-recipe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ingredients: ingredients.split(",").map((item) => item.trim()),
+        }),
+      });
 
       const data = await response.json();
       setRecipeData(data.recipe);
@@ -96,64 +144,104 @@ function App() {
       <header className="App-header">
         <h1>Health and Fitness Plan Generator</h1>
       </header>
-      <div className="container">
-        <div className="form">
-          <h2> Fitness Plan</h2>
-          <input
-            type="number"
-            placeholder="Age"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Gender"
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="elaborate your fitness Goal"
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="do you have any Equipment?"
-            value={equipment}
-            onChange={(e) => setEquipment(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Experience ,elaborate if possible"
-            value={experience}
-            onChange={(e) => setExperience(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Injuries... if any explain"
-            value={injuries}
-            onChange={(e) => setInjuries(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="got the availability of a bar?"
-            value={bar}
-            onChange={(e) => setBar(e.target.value)}
-          />
-          <button onClick={generateFitnessPlan}>Generate Fitness Plan</button>
+
+      {user ? (
+        <div>
+          <h2>Welcome, {user.email.split("@")[0]}</h2>
+          <button onClick={handleLogout} className="button">
+            Logout
+          </button>
+
+          <div className="container">
+            <div className="form">
+              <h2>Fitness Plan</h2>
+              <input
+                type="number"
+                placeholder="Age"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Elaborate your fitness goal"
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Do you have any equipment?"
+                value={equipment}
+                onChange={(e) => setEquipment(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Experience, elaborate if possible"
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Injuries... if any, explain"
+                value={injuries}
+                onChange={(e) => setInjuries(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Do you have a bar available?"
+                value={bar}
+                onChange={(e) => setBar(e.target.value)}
+              />
+              <button onClick={generateFitnessPlan}>
+                Generate Fitness Plan
+              </button>
+            </div>
+            <div className="form">
+              <h2>Generate Recipe from Available Ingredients</h2>
+              <input
+                type="text"
+                placeholder="Ingredients (comma-separated)"
+                value={ingredients}
+                onChange={(e) => setIngredients(e.target.value)}
+              />
+              <button onClick={generateRecipe}>Generate Recipe</button>
+            </div>
+          </div>
         </div>
-        <div className="form">
-          <h2>Generate Recipe from available ingredients</h2>
-          <input
-            type="text"
-            placeholder="Ingredients (comma-separated)"
-            value={ingredients}
-            onChange={(e) => setIngredients(e.target.value)}
-          />
-          <button onClick={generateRecipe}>Generate Recipe</button>
+      ) : (
+        <div className="flex-center">
+          <div className="loginform">
+            <input
+              style={{ padding: 10, width: 300, borderRadius: 5 }}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="password"
+              style={{ padding: 10, width: 300, borderRadius: 5 }}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div style={{ display: "flex", gap: 15, marginTop: 10 }}>
+              <button className="button" onClick={handleLogin}>
+                Login
+              </button>
+              <button className="button" onClick={handleSignup}>
+                Signup
+              </button>
+            </div>
+            {error && alert(error)}
+          </div>
         </div>
-      </div>
+      )}
 
       {loading && <div>Loading...</div>}
       {error && <div>{error}</div>}
@@ -171,11 +259,8 @@ function App() {
           <ReactMarkdown>{recipeData}</ReactMarkdown>
         </div>
       )}
-      {workoutData ? (
-        " "
-      ) : recipeData ? (
-        " "
-      ) : (
+
+      {!workoutData && !recipeData && (
         <div className="output">
           <ReactMarkdown>{instructions}</ReactMarkdown>
         </div>
